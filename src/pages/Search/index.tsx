@@ -1,11 +1,11 @@
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { IArena } from '../../interfaces/IArena';
-import {  Text, View, StyleSheet } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import * as C from './styles'
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Video, ResizeMode } from "expo-av";
 import { theme } from "../../styles/theme";
-import {  Entypo} from '@expo/vector-icons';
+import { Entypo } from '@expo/vector-icons';
 import { Api, token } from '../../services/api';
 import { IArenaResponse, IArenaVideo } from '../../interfaces/IVideoPlayer';
 import { FlashList } from '@shopify/flash-list';
@@ -18,10 +18,21 @@ type SearchScreenParams = {
 
 export function Search() {
   const route = useRoute<RouteProp<Record<string, SearchScreenParams>, string>>();
-  const [response, setResponse] = useState<IArenaVideo[]>([])
+  const responseEmpty = { "DatHora": "",
+   "DatProcessado": "", 
+   "DatUpload": "", 
+   "Frame": "", 
+   "HorarioVideoFrame": "", 
+   "NomArena": "", 
+   "NomExibicao": "", 
+   "NomQuadra": "", 
+   "play": "" }
+  const [response, setResponse] = useState<IArenaVideo[]>([responseEmpty])
   const nomArena = route.params?.nomArena;
   const { favorites, setFavorites } = useContext(FavoriteContext)
 
+  console.log(response[0])
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,59 +85,76 @@ export function Search() {
   }
   const video = useRef(null);
   const [status, setStatus] = useState({});
+
+  function areObjectsEqual(obj1: Record<string, any>, obj2: Record<string, any>): boolean  {
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+  
+    if (keys1.length !== keys2.length) {
+      return false;
+    }
+  
+    for (let key of keys1) {
+      if (JSON.stringify(obj1[key]) !== JSON.stringify(obj2[key])) {
+        return false;
+      }
+    }
+  
+    return true;
+  }
   return (
     <>
-      {nomArena ? (
-        <C.Container>
-
-
-
-          <FlashList
-            data={response}
-            keyExtractor={(item) => String(item.HorarioVideoFrame)}
-            estimatedItemSize={2}
-            renderItem={({ item }) => {
-              const isFavorite = favorites.some((favVideo) => favVideo.play  === item.play);
-              return(
-                <C.Content >
-                <Video
-                  ref={video}
-                  style={styles.video}
-                  source={{ uri: item.play }}
-                  focusable={true}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  isLooping
-                  onPlaybackStatusUpdate={status => setStatus(() => status)}
-                />
-                <C.Description>
-                  <View>
-                    <Text style={styles.local}>{item.NomExibicao}</Text>
-                    <Text style={styles.local}>{item.DatHora}</Text>
-                  </View>
-                  <C.Favorite onPress={() => isFavorite ? removeVideoFromFavorite(item): addVideoToFavorite(item)}>
-                    {
-                      isFavorite ?
-                        <Entypo name="heart" size={24} color={theme.colors.green_700} />
-                        :
-                        <Entypo name="heart-outlined" size={24} color={theme.colors.green_700} />
-                    }
-                  </C.Favorite>
-
-
-                </C.Description>
-
-              </C.Content>
-              )
-             
-            }}
-          />
-        </C.Container>
-
-      ) : <Text>tem nada</Text>
-
-      }
-
+   {
+   nomArena && !areObjectsEqual(response[0], responseEmpty) ? (
+    <C.Container>
+      <FlashList
+        data={response}
+        keyExtractor={(item) => String(item.HorarioVideoFrame)}
+        estimatedItemSize={1}
+        showsVerticalScrollIndicator={false}
+        renderItem={({ item }) => {
+          const isFavorite = favorites.some((favVideo) => favVideo.play === item.play);
+          return (
+            <C.Content>
+              <Video
+                ref={video}
+                style={styles.video}
+                source={{ uri: item.play }}
+                focusable={true}
+                useNativeControls
+                resizeMode={ResizeMode.CONTAIN}
+                isLooping
+                onPlaybackStatusUpdate={status => setStatus(() => status)}
+              />
+              <C.Description>
+                <View>
+                  <Text style={styles.local}>{item.NomExibicao}</Text>
+                  <Text style={styles.local}>{item.DatHora}</Text>
+                </View>
+                <C.Favorite onPress={() => isFavorite ? removeVideoFromFavorite(item) : addVideoToFavorite(item)}>
+                  {
+                    isFavorite ?
+                      <Entypo name="heart" size={24} color={theme.colors.green_700} />
+                      :
+                      <Entypo name="heart-outlined" size={24} color={theme.colors.green_700} />
+                  }
+                </C.Favorite>
+              </C.Description>
+            </C.Content>
+          )
+        }}
+      />
+    </C.Container>
+  )  : (
+   
+      <View style={styles.Container}>
+        <Text style={styles.text}>
+          Selecione uma quadra que tenha videos
+        </Text>
+      </View>
+    
+  )
+}
     </>
   );
 }
@@ -146,7 +174,7 @@ const styles = StyleSheet.create({
   },
   video: {
     alignSelf: 'center',
-    width: '100%',
+    width: 300,
     height: 200,
   },
   buttons: {
@@ -154,4 +182,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  Container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.gray_25
+  },
+  text: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.gray_20
+  }
 });
