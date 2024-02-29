@@ -1,20 +1,18 @@
+import { NavigationContainer } from "@react-navigation/native";
+import { Routes } from "./src/routes";
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { FavoriteProvider } from "./src/contexts/FavoritesContext";
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer >
+      <FavoriteProvider>
+      <StatusBar style="light" />
+      <Routes />
+    </FavoriteProvider>
+    </NavigationContainer>
+
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+
