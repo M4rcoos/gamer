@@ -6,14 +6,31 @@ import { theme } from "../../styles/theme";
 import { Api, token } from "../../services/api";
 import { IApiResponseArena, IArena } from "../../interfaces/IArena";
 import { useNavigation } from "@react-navigation/native";
-
+import {useQuery} from '@tanstack/react-query'
 export function Striming() {
   const [response, setResponse] = useState<IApiResponseArena | null>(null);
   const [filteredData, setFilteredData] = useState<IArena[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   const navigation = useNavigation();
-
+  
+  const { data } = useQuery("arenas", () => {
+    return Api.post<IApiResponseArena>(
+      "/",
+      {
+        Consulta: "SelArenas",
+        Parametros: "",
+        Tipo: "J",
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  });
+  
   useEffect(() => {
     const fetchData = async () => {
       try {

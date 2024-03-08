@@ -1,8 +1,8 @@
-import { useRoute, RouteProp } from '@react-navigation/native';
-import { IArena } from '../../interfaces/IArena';
-import { Text, View, StyleSheet, Image } from "react-native";
-import * as C from './styles'
+
+
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { View, Text, Image, TouchableOpacity, Modal, Button , StyleSheet} from "react-native";
+import { useRoute, RouteProp } from '@react-navigation/native';
 import { Video, ResizeMode } from "expo-av";
 import { theme } from "../../styles/theme";
 import { Entypo } from '@expo/vector-icons';
@@ -10,14 +10,23 @@ import { Api, token } from '../../services/api';
 import { IArenaResponse, IArenaVideo } from '../../interfaces/IVideoPlayer';
 import { FlashList } from '@shopify/flash-list';
 import { FavoriteContext } from '../../contexts/FavoritesContext';
+import * as C from './styles';  // Certifique-se de adicionar a importação correta para o seu estilo
+import { IArena } from "../../interfaces/IArena";
 
 type SearchScreenParams = {
   nomArena: IArena['NomArena'];
 };
-
-
+interface IStatus {
+  isPlaying: boolean;
+}
+interface ISelectedVideo {
+  play: string;
+  // Adicione outras propriedades, se houver
+}
 export function Search() {
   const route = useRoute<RouteProp<Record<string, SearchScreenParams>, string>>();
+  const nomArena = route.params?.nomArena;
+  const { favorites, setFavorites } = useContext(FavoriteContext)
   const responseEmpty = {
     "DatHora": "",
     "DatProcessado": "",
@@ -29,12 +38,20 @@ export function Search() {
     "NomQuadra": "",
     "play": ""
   }
-  const [response, setResponse] = useState<IArenaVideo[]>([responseEmpty])
-  const nomArena = route.params?.nomArena;
-  const { favorites, setFavorites } = useContext(FavoriteContext)
-
-  console.log(response[0])
-
+  const [response, setResponse] = useState<IArenaVideo[]>([responseEmpty]);
+  const video = useRef<Video | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<ISelectedVideo | null >(null);
+  
+  useEffect(() => {
+    if (selectedVideo) {
+      (async () => {
+        if (video.current) {
+          await video.current.unloadAsync(); 
+          await video.current.loadAsync({ uri: selectedVideo.play });
+        }
+      })();
+    }
+  }, [selectedVideo]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,38 +72,18 @@ export function Search() {
           }
         );
         setResponse(response.data.result);
-
       } catch (error) {
         console.error('Erro na solicitação:', error);
       }
     };
 
     fetchData()
-  }, [nomArena, favorites])
+  }, [nomArena, favorites]);
 
-
-  interface IVideoPlayer {
-    id: number,
-    name: string,
-    title: string,
-    date: string
-    local: string
-  }
-
-  const addVideoToFavorite = (video: IArenaVideo) => {
-    const isAlreadyFavorite = favorites.some((favVideo) => favVideo.DatProcessado === video.play);
-    console.log(true)
-    if (!isAlreadyFavorite) {
-      setFavorites([...favorites, video]);
-    }
+  const handleRenderVideo = async (play: string) => {
+    setSelectedVideo({ play });
   };
-  const removeVideoFromFavorite = (video: IArenaVideo) => {
-    setFavorites(favorites.filter((videoFavorite) => video.DatProcessado !== videoFavorite.DatProcessado))
-    console.log(false)
-
-  }
-  const video = useRef(null);
-  const [status, setStatus] = useState({});
+  
 
   function areObjectsEqual(obj1: Record<string, any>, obj2: Record<string, any>): boolean {
     const keys1 = Object.keys(obj1);
@@ -104,57 +101,99 @@ export function Search() {
 
     return true;
   }
+
+   const addVideoToFavorite = (video: IArenaVideo) => {
+    const isAlreadyFavorite = favorites.some((favVideo) => favVideo.DatProcessado === video.play);
+    console.log(true)
+    if (!isAlreadyFavorite) {
+      setFavorites([...favorites, video]);
+    }
+  };
+  const removeVideoFromFavorite = (video: IArenaVideo) => {
+    setFavorites(favorites.filter((videoFavorite) => video.DatProcessado !== videoFavorite.DatProcessado))
+    console.log(false)
+
+  }
+
   return (
     <>
-      {
-        nomArena && !areObjectsEqual(response[0], responseEmpty) ? (
-          <C.Container>
-            <FlashList
-              data={response}
-              keyExtractor={(item) => String(item.HorarioVideoFrame)}
-              estimatedItemSize={1}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => {
-                const isFavorite = favorites.some((favVideo) => favVideo.play === item.play);
-                return (
-                  <C.Content>
-
-<View style={{ width: '60%', aspectRatio: 16/10, height: 200, backgroundColor:'#ccc'}}>
-  <Image
-    source={{ uri: item.Frame }}
-    style={{ width: "100%", height: "100%" }}  // "100%" em relação à largura do componente pai
-    resizeMode="contain"
-  />
-</View>
-                    <C.Description>
-                      <View>
-                        <Text style={styles.local}>{item.NomExibicao}</Text>
-                        <Text style={styles.local}>{item.DatHora}</Text>
-                      </View>
-                      <C.Favorite onPress={() => isFavorite ? removeVideoFromFavorite(item) : addVideoToFavorite(item)}>
-                        {
-                          isFavorite ?
-                            <Entypo name="heart" size={24} color={theme.colors.green_700} />
-                            :
-                            <Entypo name="heart-outlined" size={24} color={theme.colors.green_700} />
-                        }
-                      </C.Favorite>
-                    </C.Description>
-                  </C.Content>
-                )
-              }}
+      {nomArena && !areObjectsEqual(response[0], responseEmpty) ? (
+        <C.Container>
+          <FlashList
+            data={response}
+            keyExtractor={(item) => String(item.HorarioVideoFrame)}
+            estimatedItemSize={1}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => {
+              const isFavorite = favorites.some((favVideo) => favVideo.play === item.play);
+              return (
+                <C.Content key={item.HorarioVideoFrame}>
+                  <C.ContentImg>
+                    <TouchableOpacity onPress={() => handleRenderVideo(item.play)}>
+                      <Image
+                        source={{ uri: item.Frame }}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  </C.ContentImg>
+                  <C.Description>
+                    <View>
+                      <Text style={styles.local}>{item.NomExibicao}</Text>
+                      <Text style={styles.local}>{item.DatHora}</Text>
+                    </View>
+                    <C.Actions>
+                    <C.HandleAction>
+                    <Entypo name="share" size={24} color={theme.colors.green_700} />
+                    </C.HandleAction>
+                    <C.HandleAction onPress={() => isFavorite ? removeVideoFromFavorite(item) : addVideoToFavorite(item)}>
+                      {isFavorite ? (
+                        <Entypo name="heart" size={24} color={theme.colors.green_700} />
+                      ) : (
+                        <Entypo name="heart-outlined" size={24} color={theme.colors.green_700} />
+                      )}
+                    </C.HandleAction>                  
+                    </C.Actions>
+                   
+                  </C.Description>
+                </C.Content>
+              );
+            }}
+          />
+          {selectedVideo && (
+          <Modal
+          animationType="slide"
+          transparent={false}
+          visible={selectedVideo !== null}
+        >
+          <View style={styles.modalContainer}>
+            <Video
+              ref={video}
+              style={styles.video}
+              source={{ uri: selectedVideo?.play }}
+              useNativeControls
+              resizeMode={ResizeMode.CONTAIN}
+              isLooping
+             
             />
-          </C.Container>
-        ) : (
-
-          <View style={styles.Container}>
-            <Text style={styles.text}>
-              Selecione uma quadra que tenha videos
-            </Text>
+            <View style={styles.buttonsContainer}>
+            
+              
+              <C.ContentImg onPress={() => setSelectedVideo(null)} >
+                <Text>
+                X
+                </Text>
+              </C.ContentImg>
+            </View>
           </View>
-
-        )
-      }
+        </Modal>
+          )}
+        </C.Container>
+      ) : (
+        <View style={styles.Container}>
+          <Text style={styles.text}>Selecione uma quadra que tenha vídeos</Text>
+        </View>
+      )}
     </>
   );
 }
@@ -165,6 +204,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     maxWidth: 300
 
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    marginTop: 10,
   },
   title: {
 

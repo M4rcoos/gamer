@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 const Tab = createBottomTabNavigator();
 
-import { Entypo, Feather } from '@expo/vector-icons';
+import { Entypo, Feather, FontAwesome } from '@expo/vector-icons';
 
 import { Striming } from './pages/Striming'
 import { Account } from './pages/Account'
@@ -36,10 +36,10 @@ export function Routes() {
       <Tab.Screen 
         options={{
           tabBarIcon: ({ size, color }) => (
-            <Feather name="search" size={size} color={color} />
+            <FontAwesome name="futbol-o" size={size} color={color} />
           )
         }}
-        name="Procurar" component={Striming} 
+        name="Quadras" component={Striming} 
       />
       
       <Tab.Screen
@@ -50,14 +50,14 @@ export function Routes() {
         }}
         name="Videos" component={Search}
       />
-      <Tab.Screen
+      {/* <Tab.Screen
         options={{
           tabBarIcon: ({ size, color }) => (
             <Feather name="heart" size={size} color={color} />
           )
         }}
         name="Favoritos" component={Favorites}
-      />
+      /> */}
       {/* <Tab.Screen
         options={{
           tabBarIcon: ({ size, color }) => (
